@@ -50,5 +50,8 @@
     "@sinclair/typebox": "^0.34.49",
     "@types/node": "^22.19.17",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
   }
 }

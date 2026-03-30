@@ -1,6 +1,6 @@
 # pi-crew
 
-Non-blocking subagent orchestration for [pi](https://pi.dev). Spawn isolated subagents that work in parallel while your current session stays interactive. Results are delivered back to the session that spawned them as steering messages when done.
+Non - blocking subagent orchestration for [pi](https://pi.dev). Spawn isolated subagents that work in parallel while your current session stays interactive. Results are delivered back to the session that spawned them as steering messages when done.
 
 ## Demo - Watch the Video
 
@@ -20,7 +20,7 @@ From git:
 pi install git:github.com/melihmucuk/pi-crew
 ```
 
-This installs the extension, bundled prompt template, and bundled subagent definitions. Bundled subagents are automatically discovered and ready to use without any extra setup.
+This installs the extension, bundled prompt template, and bundled subagent definitions. Bundled subagents are automatically discovered and ready to use without any extra setup. Git installs build the extension during package installation.
 
 ## Architecture
 
