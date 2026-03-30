@@ -13,7 +13,7 @@ export function registerCrewListTool({
 		name: "crew_list",
 		label: "List Crew",
 		description:
-			"List available subagent definitions and currently running subagents with their status.",
+			"List available subagent definitions (from <cwd>/.pi/agents/, ~/.pi/agent/agents/, and bundled agents, with optional global/project pi-crew.json or pi-crew.jsonc overrides) and currently running subagents with their status.",
 		parameters: Type.Object({}),
 		promptSnippet: "List subagent definitions and active subagents",
 

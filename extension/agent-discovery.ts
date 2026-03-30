@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
 import { getAgentDir, parseFrontmatter } from "@mariozechner/pi-coding-agent";
+import { parse as parseJsonc, printParseErrorCode, type ParseError } from "jsonc-parser";
 import { type SupportedToolName, isSupportedToolName } from "./tool-registry.js";
 
 interface ParsedModel {
@@ -557,21 +558,58 @@ function parseOverrideFields(
 	return { override, warnings };
 }
 
-function parseConfigFile(content: string, filePath: string): ConfigParseResult {
-	let parsed: unknown;
+function formatJsoncParseErrors(errors: ParseError[]): string {
+	return errors
+		.map((error) => `${printParseErrorCode(error.error)} at offset ${error.offset}`)
+		.join("; ");
+}
+
+function parseConfigContent(content: string, filePath: string): { parsed: unknown; warnings: AgentDiscoveryWarning[] } {
+	if (filePath.endsWith(".jsonc")) {
+		const errors: ParseError[] = [];
+		const parsed = parseJsonc(content, errors, {
+			allowTrailingComma: true,
+			disallowComments: false,
+		});
+
+		if (errors.length > 0) {
+			return {
+				parsed: undefined,
+				warnings: [
+					createDiscoveryWarning(
+						filePath,
+						`Ignored pi-crew config. JSONC could not be parsed: ${formatJsoncParseErrors(errors)}`,
+					),
+				],
+			};
+		}
+
+		return { parsed, warnings: [] };
+	}
+
 	try {
-		parsed = JSON.parse(content);
+		return { parsed: JSON.parse(content), warnings: [] };
 	} catch (error) {
 		const reason = error instanceof Error ? error.message : String(error);
 		return {
-			overrides: {},
-			overrideSources: {},
+			parsed: undefined,
 			warnings: [
 				createDiscoveryWarning(
 					filePath,
 					`Ignored pi-crew config. JSON could not be parsed: ${reason}`,
 				),
 			],
+		};
+	}
+}
+
+function parseConfigFile(content: string, filePath: string): ConfigParseResult {
+	const { parsed, warnings: parseWarnings } = parseConfigContent(content, filePath);
+	if (parseWarnings.length > 0) {
+		return {
+			overrides: {},
+			overrideSources: {},
+			warnings: parseWarnings,
 		};
 	}
 
@@ -682,17 +720,25 @@ function mergeOverrideSources(
 }
 
 function loadConfigOverrides(cwd: string): ConfigParseResult {
-	const globalPath = path.join(getAgentDir(), "pi-crew.json");
-	const projectPath = path.join(cwd, ".pi", "pi-crew.json");
+	const configPaths = [
+		path.join(getAgentDir(), "pi-crew.json"),
+		path.join(getAgentDir(), "pi-crew.jsonc"),
+		path.join(cwd, ".pi", "pi-crew.json"),
+		path.join(cwd, ".pi", "pi-crew.jsonc"),
+	];
 
-	const globalConfig = loadConfigOverridesFromFile(globalPath);
-	const projectConfig = loadConfigOverridesFromFile(projectPath);
+	let overrides: Record<string, AgentConfigOverride> = {};
+	let overrideSources: Record<string, string> = {};
+	const warnings: AgentDiscoveryWarning[] = [];
 
-	return {
-		overrides: mergeConfigOverrides(globalConfig.overrides, projectConfig.overrides),
-		overrideSources: mergeOverrideSources(globalConfig.overrideSources, projectConfig.overrideSources),
-		warnings: [...globalConfig.warnings, ...projectConfig.warnings],
-	};
+	for (const configPath of configPaths) {
+		const loaded = loadConfigOverridesFromFile(configPath);
+		overrides = mergeConfigOverrides(overrides, loaded.overrides);
+		overrideSources = mergeOverrideSources(overrideSources, loaded.overrideSources);
+		warnings.push(...loaded.warnings);
+	}
+
+	return { overrides, overrideSources, warnings };
 }
 
 function applyAgentOverride(agent: AgentConfig, override: AgentConfigOverride): AgentConfig {

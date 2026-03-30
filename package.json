@@ -32,6 +32,7 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
     "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test dist/agent-discovery.test.js",
     "prepare": "npm run build"
   },
   "peerDependencies": {

@@ -152,16 +152,20 @@ The subagent will follow these instructions when executing tasks.
 | `compaction`  | no       | Enable context compaction. Defaults to `true`.                                                                       |
 | `interactive` | no       | Keep session alive after response for multi-turn conversations. Defaults to `false`.                                 |
 
-## Subagent Overrides via JSON
+## Subagent Overrides via JSON / JSONC
 
 You can override selected frontmatter fields without editing the `.md` definition files.
 
-Config locations:
+Config locations, in precedence order:
 
-- Global: `~/.pi/agent/pi-crew.json`
-- Project: `<cwd>/.pi/pi-crew.json`
+1. Global JSON: `~/.pi/agent/pi-crew.json`
+2. Global JSONC: `~/.pi/agent/pi-crew.jsonc`
+3. Project JSON: `<cwd>/.pi/pi-crew.json`
+4. Project JSONC: `<cwd>/.pi/pi-crew.jsonc`
 
-Project config overrides global config. Only these fields are overridable:
+Later files override earlier files for the same subagent and field, so JSONC takes precedence over JSON within the same scope and project overrides global. `.json` files are parsed as strict JSON. `.jsonc` files support comments and trailing commas.
+
+Only these fields are overridable:
 
 - `model`
 - `thinking`
